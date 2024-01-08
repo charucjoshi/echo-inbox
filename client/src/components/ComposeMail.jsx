@@ -1,6 +1,8 @@
 import {Button,styled, Dialog, Box, Typography, InputBase, TextField} from '@mui/material';
 import {useState} from 'react';
 import {Close, DeleteOutlined} from '@mui/icons-material';
+import useApi from '../hooks/useApi';
+import {API_URLS} from '../services/api.urls';
 
 //Dialog box that opens on clicking compose button
 const dialogStyle = {
@@ -62,18 +64,26 @@ const SendButton = styled(Button)({
 });
 
 //Render function
-const ComposeMail = ({openDialog, setOpenDialog}) => {
-    const config = {
-        Host : "smtp.elasticemail.com",
-            Username : process.env.REACT_APP_USERNAME, 
-            Password : process.env.REACT_APP_PASSWORD,
-            Port: 2525
-    }
+const ComposeMail = ({openDialog, setOpenDialog}) => { 
+    const [data, setData] = useState({});
+    const sentEmailService = useApi(API_URLS.saveSentEmail);
     const closeComposeMail = (e) => {
         e.preventDefault();
         setOpenDialog(false);
     };
-    const sendMail = (e) => {
+
+    const config = {
+        Username : process.env.REACT_APP_USERNAME, 
+        Password : process.env.REACT_APP_PASSWORD,
+        Host: "smtp.elasticemail.com", 
+        Port: 2525
+    }
+
+    const onValueChange = (e) => {
+        setData({...data, [e.target.name]: e.target.value })
+    };
+
+    const sendMail = async (e) => {
         e.preventDefault();
 
         if(window.Email) {
@@ -84,16 +94,36 @@ const ComposeMail = ({openDialog, setOpenDialog}) => {
             Subject : data.subject, 
             Body : data.body 
         }).then(
-        message => alert(message)
+            message => alert(message)
         );
-        }
+    }
+    
+    const payload = {
+        to: data.to,
+        from: "ccjoshi07@gmail.com",
+        subject: data.subject,
+        body: data.body,
+        date: new Date(),
+        image: '',
+        name: 'Charu Joshi',
+        starred: false,
+        type: 'sent'
+    }
+
+    sentEmailService.call(payload);
+    
+    if(!sentEmailService.error){
         setOpenDialog(false);
-    };
-    const [data, setData] = useState({});
-    const onValueChange = (e) => {
-        setData({...data, [e.target.name]: e.target.value })
-    };
-    return (
+        setData({});
+    }
+    else{
+    }
+
+    setOpenDialog(false);
+    }
+
+        
+            return (
         <Dialog
             open={openDialog}
             PaperProps={{sx: dialogStyle}}
